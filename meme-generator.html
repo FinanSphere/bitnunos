@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bitnun OS - AI Meme Generator</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/fabric@5.3.0/dist/fabric.min.js"></script>
+  <style>
+    body {
+      background-color: #0d0d0d;
+      color: white;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .gradient-bg {
+      background: linear-gradient(135deg, rgba(76, 29, 149, 0.2), rgba(124, 58, 237, 0.2), rgba(219, 39, 119, 0.2));
+    }
+    .gradient-text {
+      background: linear-gradient(to right, #4f46e5, #8b5cf6, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .card {
+      backdrop-filter: blur(10px);
+      background-color: rgba(17, 17, 17, 0.7);
+      border: 1px solid #333;
+      border-radius: 0.5rem;
+      transition: all 0.3s ease;
+    }
+    .card:hover {
+      border-color: #6d28d9;
+      box-shadow: 0 0 15px rgba(124, 58, 237, 0.3);
+    }
+    .btn-gradient {
+      background: linear-gradient(to right, #4f46e5, #8b5cf6);
+      transition: all 0.3s ease;
+    }
+    .btn-gradient:hover {
+      background: linear-gradient(to right, #4338ca, #7c3aed);
+      transform: translateY(-2px);
+    }
+    .canvas-container {
+      margin: 0 auto;
+      border: 1px solid #333;
+      border-radius: 0.5rem;
+      overflow: hidden;
+      background-color: #1f1f1f;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    .file-label {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      background: linear-gradient(to right, #1e40af, #3b82f6);
+      color: white;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .file-label:hover {
+      background: linear-gradient(to right, #1e3a8a, #2563eb);
+    }
+    .meme-template {
+      width: 120px;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 0.375rem;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .meme-template:hover {
+      border-color: #6d28d9;
+      transform: scale(1.05);
+    }
+    .select-dropdown {
+      background-color: #1f1f1f;
+      border: 1px solid #333;
+      color: white;
+      border-radius: 0.375rem;
+      padding: 0.5rem;
+    }
+    /* Loading spinner */
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-top-color: #8b5cf6;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <header class="text-center mb-8">
+      <h1 class="text-4xl font-bold gradient-text mb-2">Bitnun OS - AI Meme Generator</h1>
+      <p class="text-gray-400 max-w-2xl mx-auto">Create, customize, and mint meme images with AI-powered captions and editing tools</p>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Left sidebar - Tools -->
+      <div class="lg:col-span-1">
+        <div class="card p-4 mb-6">
+          <h2 class="text-xl font-bold mb-4">Meme Templates</h2>
+          <div class="grid grid-cols-2 gap-2 mb-4">
+            <img src="https://i.imgflip.com/1bij.jpg" class="meme-template" alt="One Does Not Simply" onclick="loadMemeTemplate(this.src, 'One Does Not Simply')">
+            <img src="https://i.imgflip.com/46e43q.png" class="meme-template" alt="DiCaprio Cheers" onclick="loadMemeTemplate(this.src, 'DiCaprio Cheers')">
+            <img src="https://i.imgflip.com/3oevdk.jpg" class="meme-template" alt="Bernie Mittens" onclick="loadMemeTemplate(this.src, 'Bernie Mittens')">
+            <img src="https://i.imgflip.com/4acd7j.png" class="meme-template" alt="Trade Offer" onclick="loadMemeTemplate(this.src, 'Trade Offer')">
+            <img src="https://i.imgflip.com/30b1gx.jpg" class="meme-template" alt="Drake Format" onclick="loadMemeTemplate(this.src, 'Drake Format')">
+            <img src="https://i.imgflip.com/1g8my4.jpg" class="meme-template" alt="Two Buttons" onclick="loadMemeTemplate(this.src, 'Two Buttons')">
+          </div>
+          <div class="mb-4">
+            <h3 class="text-sm font-medium text-gray-400 mb-1">Or upload your own image</h3>
+            <label class="file-label w-full text-center">
+              <input type="file" id="imageUpload" accept="image/*" onchange="handleImageUpload()">
+              <span>Upload Image</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="card p-4 mb-6">
+          <h2 class="text-xl font-bold mb-4">AI Caption Generator</h2>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-400 mb-1">Meme Topic</label>
+            <input type="text" id="memeTopicInput" placeholder="e.g. crypto, blockchain, NFTs" 
+                  class="w-full bg-gray-900 border border-gray-700 text-white p-2 rounded-md focus:border-purple-500 focus:outline-none">
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-400 mb-1">Style</label>
+            <select id="memeStyleSelect" class="select-dropdown w-full">
+              <option value="funny">Funny</option>
+              <option value="sarcastic">Sarcastic</option>
+              <option value="dark">Dark Humor</option>
+              <option value="nerdy">Nerdy/Technical</option>
+              <option value="dramatic">Dramatic</option>
+            </select>
+          </div>
+          <button id="generateCaptionBtn" onclick="simulateAICaption()" class="btn-gradient w-full py-2 px-4 rounded-md text-white font-medium">
+            Generate AI Caption
+          </button>
+          <div id="generatedCaption" class="mt-4 p-3 bg-gray-900 rounded-md hidden">
+            <p class="text-sm text-gray-300">Generated caption will appear here</p>
+          </div>
+          <div id="captionLoader" class="mt-4 flex items-center justify-center hidden">
+            <div class="spinner mr-3"></div>
+            <p>Generating caption...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center - Canvas editor -->
+      <div class="lg:col-span-2">
+        <div class="card p-4 mb-6">
+          <h2 class="text-xl font-bold mb-4">Meme Editor</h2>
+          <div class="mb-4">
+            <div class="canvas-container">
+              <canvas id="memeCanvas" width="600" height="600"></canvas>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1">Top Text</label>
+              <input type="text" id="topTextInput" placeholder="Top text" 
+                    class="w-full bg-gray-900 border border-gray-700 text-white p-2 rounded-md"
+                    oninput="updateMemeText()">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1">Bottom Text</label>
+              <input type="text" id="bottomTextInput" placeholder="Bottom text" 
+                    class="w-full bg-gray-900 border border-gray-700 text-white p-2 rounded-md"
+                    oninput="updateMemeText()">
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1">Text Color</label>
+              <div class="flex space-x-2">
+                <button onclick="setTextColor('#ffffff')" class="w-8 h-8 bg-white rounded-full border border-gray-400"></button>
+                <button onclick="setTextColor('#000000')" class="w-8 h-8 bg-black rounded-full border border-gray-400"></button>
+                <button onclick="setTextColor('#ff0000')" class="w-8 h-8 bg-red-500 rounded-full"></button>
+                <button onclick="setTextColor('#0000ff')" class="w-8 h-8 bg-blue-500 rounded-full"></button>
+                <button onclick="setTextColor('#ffff00')" class="w-8 h-8 bg-yellow-400 rounded-full"></button>
+                <input type="color" id="textColorPicker" onchange="setTextColor(this.value)" class="w-8 h-8 rounded-full overflow-hidden">
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1">Font Style</label>
+              <select id="fontStyleSelect" class="select-dropdown w-full" onchange="updateFontStyle()">
+                <option value="Impact">Impact (Classic)</option>
+                <option value="Arial Black">Arial Black</option>
+                <option value="Comic Sans MS">Comic Sans</option>
+                <option value="Verdana">Verdana</option>
+                <option value="Times New Roman">Times New Roman</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-4">
+            <button onclick="downloadMeme()" class="btn-gradient py-2 px-4 rounded-md text-white font-medium">
+              Download Meme
+            </button>
+            <button onclick="resetCanvas()" class="bg-gray-700 hover:bg-gray-600 py-2 px-4 rounded-md text-white font-medium">
+              Reset Canvas
+            </button>
+            <button onclick="mintAsNFT()" class="bg-gradient-to-r from-pink-500 to-orange-500 hover:from-pink-600 hover:to-orange-600 py-2 px-4 rounded-md text-white font-medium">
+              Mint as NFT
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal for NFT minting -->
+    <div id="mintModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+      <div class="bg-gray-900 p-6 rounded-lg max-w-md w-full">
+        <h2 class="text-xl font-bold mb-4 gradient-text">Mint Your Meme as NFT</h2>
+        <p class="text-gray-300 mb-4">Your meme will be uploaded to IPFS and minted as an NFT on the blockchain.</p>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-400 mb-1">NFT Name</label>
+          <input type="text" id="nftNameInput" placeholder="My Awesome Meme" 
+                class="w-full bg-gray-800 border border-gray-700 text-white p-2 rounded-md">
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-400 mb-1">NFT Description</label>
+          <textarea id="nftDescriptionInput" placeholder="A description of your meme" 
+                   class="w-full bg-gray-800 border border-gray-700 text-white p-2 rounded-md h-20"></textarea>
+        </div>
+        <div class="flex justify-between">
+          <button onclick="document.getElementById('mintModal').classList.add('hidden')" 
+                  class="bg-gray-700 hover:bg-gray-600 py-2 px-4 rounded-md text-white font-medium">
+            Cancel
+          </button>
+          <button onclick="simulateMintingProcess()"
+                  class="bg-gradient-to-r from-pink-500 to-orange-500 hover:from-pink-600 hover:to-orange-600 py-2 px-4 rounded-md text-white font-medium">
+            Mint NFT
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Success/progress modal -->
+    <div id="progressModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+      <div class="bg-gray-900 p-6 rounded-lg max-w-md w-full text-center">
+        <div id="mintingProgress" class="mb-4">
+          <div class="spinner mx-auto mb-4"></div>
+          <p class="text-lg font-medium" id="progressMessage">Uploading to IPFS...</p>
+        </div>
+        <div id="mintingSuccess" class="hidden">
+          <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold mb-2">NFT Successfully Minted!</h3>
+          <p class="text-gray-300 mb-4">Your meme is now a unique NFT on the blockchain.</p>
+          <div class="bg-gray-800 p-3 rounded mb-4 text-left">
+            <p class="text-xs text-gray-400">Transaction Hash:</p>
+            <p class="text-sm text-blue-400 truncate">0x7d3e89f571a91fe1e4b898789b1856af98010a71dfd3be3e7bd3c7cd7c1271c9</p>
+          </div>
+          <button onclick="closeAllModals()" 
+                  class="bg-gradient-to-r from-green-500 to-blue-500 py-2 px-4 rounded-md text-white font-medium">
+            Back to Editor
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Initialize Fabric.js canvas
+    let canvas;
+    let topText;
+    let bottomText;
+    let currentTextColor = '#ffffff';
+    let currentFontFamily = 'Impact';
+    
+    // Initialize the canvas when the page loads
+    window.onload = function() {
+      canvas = new fabric.Canvas('memeCanvas');
+      canvas.setDimensions({ width: 600, height: 600 });
+      
+      // Set canvas background color
+      canvas.setBackgroundColor('#1f1f1f', canvas.renderAll.bind(canvas));
+      
+      // Add placeholder text
+      addTextToCanvas();
+    };
+    
+    // Load a meme template
+    function loadMemeTemplate(src, title) {
+      fabric.Image.fromURL(src, function(img) {
+        // Clear the canvas
+        canvas.clear();
+        
+        // Calculate scaling to fit canvas while maintaining aspect ratio
+        const scale = Math.min(
+          canvas.width / img.width,
+          canvas.height / img.height
+        );
+        
+        // Scale the image
+        img.set({
+          scaleX: scale,
+          scaleY: scale,
+          originX: 'center',
+          originY: 'center',
+          left: canvas.width / 2,
+          top: canvas.height / 2,
+          selectable: false // Prevent moving the background image
+        });
+        
+        // Add image to canvas
+        canvas.add(img);
+        canvas.sendToBack(img);
+        
+        // Add text based on inputs
+        addTextToCanvas();
+        
+        // Render canvas
+        canvas.renderAll();
+      });
+      
+      // Suggest a caption based on the meme type
+      suggestCaptionBasedOnTemplate(title);
+    }
+    
+    // Handle image upload
+    function handleImageUpload() {
+      const fileInput = document.getElementById('imageUpload');
+      const file = fileInput.files[0];
+      
+      if (file) {
+        const reader = new FileReader();
+        
+        reader.onload = function(event) {
+          const imgObj = new Image();
+          imgObj.src = event.target.result;
+          
+          imgObj.onload = function() {
+            const image = new fabric.Image(imgObj);
+            
+            // Calculate scaling to fit canvas while maintaining aspect ratio
+            const scale = Math.min(
+              canvas.width / image.width,
+              canvas.height / image.height
+            );
+            
+            // Scale the image
+            image.set({
+              scaleX: scale,
+              scaleY: scale,
+              originX: 'center',
+              originY: 'center',
+              left: canvas.width / 2,
+              top: canvas.height / 2,
+              selectable: false // Prevent moving the background image
+            });
+            
+            // Clear canvas and add image
+            canvas.clear();
+            canvas.add(image);
+            canvas.sendToBack(image);
+            
+            // Add text based on inputs
+            addTextToCanvas();
+            
+            // Render canvas
+            canvas.renderAll();
+          };
+        };
+        
+        reader.readAsDataURL(file);
+      }
+    }
+    
+    // Add text to canvas
+    function addTextToCanvas() {
+      // Remove existing text objects
+      canvas.getObjects().forEach(obj => {
+        if (obj.type === 'text') {
+          canvas.remove(obj);
+        }
+      });
+      
+      const topTextValue = document.getElementById('topTextInput').value || 'TOP TEXT';
+      const bottomTextValue = document.getElementById('bottomTextInput').value || 'BOTTOM TEXT';
+      
+      // Create top text
+      topText = new fabric.Text(topTextValue.toUpperCase(), {
+        left: canvas.width / 2,
+        top: 30,
+        originX: 'center',
+        originY: 'top',
+        fontFamily: currentFontFamily,
+        fontSize: 46,
+        fontWeight: 'bold',
+        fill: currentTextColor,
+        textAlign: 'center',
+        stroke: '#000000',
+        strokeWidth: 2,
+        shadow: new fabric.Shadow({
+          color: 'rgba(0,0,0,0.8)',
+          offsetX: 3,
+          offsetY: 3,
+          blur: 5
+        })
+      });
+      
+      // Create bottom text
+      bottomText = new fabric.Text(bottomTextValue.toUpperCase(), {
+        left: canvas.width / 2,
+        top: canvas.height - 30,
+        originX: 'center',
+        originY: 'bottom',
+        fontFamily: currentFontFamily,
+        fontSize: 46,
+        fontWeight: 'bold',
+        fill: currentTextColor,
+        textAlign: 'center',
+        stroke: '#000000',
+        strokeWidth: 2,
+        shadow: new fabric.Shadow({
+          color: 'rgba(0,0,0,0.8)',
+          offsetX: 3,
+          offsetY: 3,
+          blur: 5
+        })
+      });
+      
+      // Add text to canvas
+      canvas.add(topText, bottomText);
+      canvas.bringToFront(topText);
+      canvas.bringToFront(bottomText);
+      
+      // Make the text draggable
+      topText.set({ selectable: true });
+      bottomText.set({ selectable: true });
+      
+      canvas.renderAll();
+    }
+    
+    // Update meme text
+    function updateMemeText() {
+      addTextToCanvas();
+    }
+    
+    // Set text color
+    function setTextColor(color) {
+      currentTextColor = color;
+      updateMemeText();
+    }
+    
+    // Update font style
+    function updateFontStyle() {
+      currentFontFamily = document.getElementById('fontStyleSelect').value;
+      updateMemeText();
+    }
+    
+    // Download meme as image
+    function downloadMeme() {
+      // Convert canvas to data URL
+      const dataURL = canvas.toDataURL({
+        format: 'png',
+        quality: 1
+      });
+      
+      // Create a link element
+      const link = document.createElement('a');
+      link.href = dataURL;
+      link.download = 'bitnun-meme.png';
+      
+      // Append to body and trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    
+    // Reset canvas
+    function resetCanvas() {
+      canvas.clear();
+      canvas.setBackgroundColor('#1f1f1f', canvas.renderAll.bind(canvas));
+      document.getElementById('topTextInput').value = '';
+      document.getElementById('bottomTextInput').value = '';
+      addTextToCanvas();
+    }
+    
+    // Mint as NFT
+    function mintAsNFT() {
+      document.getElementById('mintModal').classList.remove('hidden');
+    }
+    
+    // Close all modals
+    function closeAllModals() {
+      document.getElementById('mintModal').classList.add('hidden');
+      document.getElementById('progressModal').classList.add('hidden');
+    }
+    
+    // Simulate minting process
+    function simulateMintingProcess() {
+      // Hide mint modal and show progress modal
+      document.getElementById('mintModal').classList.add('hidden');
+      document.getElementById('progressModal').classList.remove('hidden');
+      document.getElementById('mintingProgress').classList.remove('hidden');
+      document.getElementById('mintingSuccess').classList.add('hidden');
+      
+      // Update progress message
+      document.getElementById('progressMessage').textContent = 'Uploading to IPFS...';
+      
+      // Simulate IPFS upload progress
+      setTimeout(() => {
+        document.getElementById('progressMessage').textContent = 'Creating NFT metadata...';
+        
+        setTimeout(() => {
+          document.getElementById('progressMessage').textContent = 'Minting NFT...';
+          
+          setTimeout(() => {
+            document.getElementById('progressMessage').textContent = 'Confirming transaction...';
+            
+            setTimeout(() => {
+              // Show success message
+              document.getElementById('mintingProgress').classList.add('hidden');
+              document.getElementById('mintingSuccess').classList.remove('hidden');
+            }, 2000);
+          }, 2000);
+        }, 2000);
+      }, 2000);
+    }
+    
+    // Suggest caption based on template
+    function suggestCaptionBasedOnTemplate(templateName) {
+      const suggestions = {
+        'One Does Not Simply': {
+          top: 'ONE DOES NOT SIMPLY',
+          bottom: 'BUY THE DIP'
+        },
+        'DiCaprio Cheers': {
+          top: 'WHEN YOUR SHITCOIN',
+          bottom: 'FINALLY MOONS'
+        },
+        'Bernie Mittens': {
+          top: 'WAITING FOR ETH 2.0',
+          bottom: 'TO LAUNCH'
+        },
+        'Trade Offer': {
+          top: 'I RECEIVE: ALL YOUR MONEY',
+          bottom: 'YOU RECEIVE: A JPEG'
+        },
+        'Drake Format': {
+          top: 'USING FIAT',
+          bottom: 'USING CRYPTO'
+        },
+        'Two Buttons': {
+          top: 'HODL / SELL',
+          bottom: 'CRYPTO INVESTORS'
+        }
+      };
+      
+      if (suggestions[templateName]) {
+        document.getElementById('topTextInput').value = suggestions[templateName].top;
+        document.getElementById('bottomTextInput').value = suggestions[templateName].bottom;
+        updateMemeText();
+      }
+    }
+    
+    // Simulate AI caption generation
+    function simulateAICaption() {
+      const topic = document.getElementById('memeTopicInput').value || 'crypto';
+      const style = document.getElementById('memeStyleSelect').value;
+      
+      // Show loading spinner
+      document.getElementById('captionLoader').classList.remove('hidden');
+      document.getElementById('generatedCaption').classList.add('hidden');
+      
+      // Simulate API delay
+      setTimeout(() => {
+        // Hide loading spinner
+        document.getElementById('captionLoader').classList.add('hidden');
+        
+        // Generate captions based on topic and style
+        let topCaption = '';
+        let bottomCaption = '';
+        
+        // Very basic template-based generation for demo purposes
+        if (style === 'funny') {
+          topCaption = `WHEN ${topic.toUpperCase()} FINALLY`;
+          bottomCaption = 'MAKES YOU RICH';
+        } else if (style === 'sarcastic') {
+          topCaption = `"EXPERTS" PREDICTING`;
+          bottomCaption = `${topic.toUpperCase()} PRICES`;
+        } else if (style === 'dark') {
+          topCaption = `INVESTED LIFE SAVINGS IN ${topic.toUpperCase()}`;
+          bottomCaption = 'NOW LIVES IN A BOX';
+        } else if (style === 'nerdy') {
+          topCaption = `EXPLAINING ${topic.toUpperCase()} TECH`;
+          bottomCaption = 'TO YOUR GRANDMA';
+        } else if (style === 'dramatic') {
+          topCaption = `${topic.toUpperCase()} MARKET CRASHES`;
+          bottomCaption = 'HODLERS BE LIKE';
+        }
+        
+        // Display generated caption
+        const generatedCaptionEl = document.getElementById('generatedCaption');
+        generatedCaptionEl.innerHTML = `
+          <p class="text-sm font-medium mb-2">Generated Caption:</p>
+          <p class="text-white font-bold mb-1">${topCaption}</p>
+          <p class="text-white font-bold">${bottomCaption}</p>
+          <button 
+            onclick="applyGeneratedCaption('${topCaption}', '${bottomCaption}')" 
+            class="mt-3 btn-gradient py-1 px-2 rounded-md text-white text-sm">
+            Apply to Meme
+          </button>
+        `;
+        generatedCaptionEl.classList.remove('hidden');
+      }, 2500);
+    }
+    
+    // Apply generated caption to meme
+    function applyGeneratedCaption(topCaption, bottomCaption) {
+      document.getElementById('topTextInput').value = topCaption;
+      document.getElementById('bottomTextInput').value = bottomCaption;
+      updateMemeText();
+    }
+  </script>
+</body>
+</html>
